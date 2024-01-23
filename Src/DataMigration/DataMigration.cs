@@ -5,6 +5,7 @@ namespace DataMigration;
 
 public partial class DataMigration : Form
 {
+    private static string commonColumns = "";
     public DataMigration()
     {
         InitializeComponent();
@@ -101,7 +102,26 @@ public partial class DataMigration : Form
                 MessageBox.Show("操作失败，数据库类型异常", "迁移异常", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            SqlSugarClient sourceDb = new SqlSugarClient(sourceConfig);
+            SqlSugarClient sourceDb = new SqlSugarClient(sourceConfig, db =>
+            {
+                db.Aop.OnLogExecuting = (sql, pars) =>
+                {
+                    if (commonColumns.IsNotEmptyOrNull() && sql.ToLower().Contains($"select {commonColumns}"))
+                    {
+                        string logFilePath = "logs/sourceDb.log";
+
+                        // 确保日志目录存在
+                        Directory.CreateDirectory(Path.GetDirectoryName(logFilePath));
+
+                        // 打开日志文件，将日志写入文件末尾
+                        using (StreamWriter writer = File.AppendText(logFilePath))
+                        {
+                            writer.WriteLine("sql：" + sql);
+                            writer.WriteLine("pars：" + pars);
+                        }
+                    }
+                };
+            });
 
             //目标数据库SqlSugar配置
             ConnectionConfig toConfig = new ConnectionConfig();
@@ -164,10 +184,13 @@ public partial class DataMigration : Form
                                 IsPrimaryKey = item.IsPrimarykey,
                                 IsIdentity = item.IsIdentity,
                                 IsNullable = item.IsNullable,
-                                DecimalDigits = item.DecimalDigits,
-                                ColumnDescription = item.ColumnDescription,
-                                DefaultValue = item.DefaultValue
+                                ColumnDescription = item.ColumnDescription
                             };
+                            if (propertyType != typeof(DateTime))
+                            {
+                                column.DecimalDigits = item.DecimalDigits;
+                                column.DefaultValue = item.DefaultValue;
+                            }
                             if (propertyType == typeof(string) && item.Length < 4000)
                             {
                                 column.Length = item.Length;
@@ -196,12 +219,15 @@ public partial class DataMigration : Form
                             await Task.Run(() =>
                             {
                                 var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询目标数据库当前表所有字段
-                                var commonColumns = string.Join(",", sourceColumns
-                                    .Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToList());//取出两边表中都存在的字段并以逗号拼接                            
-                                var data = sourceDb.Ado.GetDataTable($@"select {commonColumns} from {table.Name}");//查询源数据库当前表所有数据
-                                if (data != null && data.Rows.Count > 0)
+                                commonColumns = string.Join(",", sourceColumns
+                                    .Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToList());//取出两边表中都存在的字段并以逗号拼接                                
+                                var dataCount = sourceDb.Queryable<DataTable>().AS(table.Name).Count();
+                                var pageSize = 100000;
+                                var pageCount = Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
+                                for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++)
                                 {
-                                    toDb.Fastest<DataTable>().AS(table.Name).PageSize(50000).BulkCopy(data);//将数据分页批量插入到目标表中
+                                    var data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(commonColumns).ToDataTablePage(pageIndex, pageSize);//分页查询源数据库当前表数据
+                                    toDb.CopyNew().Fastest<DataTable>().AS(table.Name).BulkCopy(data);//将数据分页批量插入到目标表中
                                 }
                             });
                         }
