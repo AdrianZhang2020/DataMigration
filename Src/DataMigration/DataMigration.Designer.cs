@@ -65,19 +65,21 @@
             label2.TabIndex = 1;
             label2.Text = "目标数据库链接：";
             // 
-            // textBox1
+            // txtSourceConn
             // 
             txtSourceConn.Location = new Point(104, 12);
             txtSourceConn.Multiline = true;
-            txtSourceConn.Name = "textBox1";
+            txtSourceConn.Name = "txtSourceConn";
+            txtSourceConn.ScrollBars = ScrollBars.Vertical;
             txtSourceConn.Size = new Size(324, 70);
             txtSourceConn.TabIndex = 2;
             // 
-            // textBox2
+            // txtToConn
             // 
             txtToConn.Location = new Point(104, 93);
             txtToConn.Multiline = true;
-            txtToConn.Name = "textBox2";
+            txtToConn.Name = "txtToConn";
+            txtToConn.ScrollBars = ScrollBars.Vertical;
             txtToConn.Size = new Size(324, 70);
             txtToConn.TabIndex = 3;
             // 
@@ -99,25 +101,25 @@
             label5.TabIndex = 6;
             label5.Text = "目标数据库类型：";
             // 
-            // comboBox1
+            // cmbSourceDbType
             // 
             cmbSourceDbType.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbSourceDbType.FormattingEnabled = true;
             cmbSourceDbType.Location = new Point(532, 37);
-            cmbSourceDbType.Name = "comboBox1";
+            cmbSourceDbType.Name = "cmbSourceDbType";
             cmbSourceDbType.Size = new Size(121, 25);
             cmbSourceDbType.TabIndex = 7;
             // 
-            // comboBox2
+            // cmbToDbType
             // 
             cmbToDbType.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbToDbType.FormattingEnabled = true;
             cmbToDbType.Location = new Point(532, 114);
-            cmbToDbType.Name = "comboBox2";
+            cmbToDbType.Name = "cmbToDbType";
             cmbToDbType.Size = new Size(121, 25);
             cmbToDbType.TabIndex = 8;
             // 
-            // button1
+            // btnDataMigration
             // 
             btnDataMigration.Font = new Font("Microsoft YaHei UI", 16F);
             btnDataMigration.Location = new Point(231, 266);
@@ -128,11 +130,12 @@
             btnDataMigration.UseVisualStyleBackColor = true;
             btnDataMigration.Click += btnDataMigration_Click;
             // 
-            // textBox3
+            // txtTableNames
             // 
             txtTableNames.Location = new Point(104, 175);
             txtTableNames.Multiline = true;
-            txtTableNames.Name = "textBox3";
+            txtTableNames.Name = "txtTableNames";
+            txtTableNames.ScrollBars = ScrollBars.Vertical;
             txtTableNames.Size = new Size(324, 70);
             txtTableNames.TabIndex = 11;
             // 
@@ -207,8 +210,9 @@
             Controls.Add(txtSourceConn);
             Controls.Add(label2);
             Controls.Add(label1);
+            FormBorderStyle = FormBorderStyle.Fixed3D;
             Icon = (Icon)resources.GetObject("$this.Icon");
-            Name = "Form1";
+            Name = "DataMigration";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "DataMigration";
             Load += DataMigration_Load;

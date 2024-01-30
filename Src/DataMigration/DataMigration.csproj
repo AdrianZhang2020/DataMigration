@@ -7,15 +7,20 @@
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604</NoWarn>
+		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604;CS8600</NoWarn>
 		<WarningLevel>2</WarningLevel>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604</NoWarn>
+		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604;CS8600</NoWarn>
 		<WarningLevel>2</WarningLevel>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="favicon.ico" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="SqlSugarCore" Version="5.1.4.138-preview02" />

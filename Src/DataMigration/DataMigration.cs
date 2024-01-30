@@ -74,6 +74,19 @@ public partial class DataMigration : Form
         this.rdoData.Enabled = false;
         this.rdoAll.Enabled = false;
 
+        string sourceDblogFilePath = Path.GetDirectoryName("logs/sourceDb.log");
+        string toDbLogFilePath = Path.GetDirectoryName("logs/toDb.log");
+        string errorLogFilePath = Path.GetDirectoryName("logs/error.log");
+        if (File.Exists(sourceDblogFilePath))
+            File.Delete(sourceDblogFilePath);
+        if (File.Exists(toDbLogFilePath))
+            File.Delete(toDbLogFilePath);
+        if (File.Exists(errorLogFilePath))
+            File.Delete(errorLogFilePath);
+        Directory.CreateDirectory(sourceDblogFilePath);
+        Directory.CreateDirectory(toDbLogFilePath);
+        Directory.CreateDirectory(errorLogFilePath);
+
         //保存源数据库链接和目标数据库链接到config
         Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
         var connectionStrings = config.ConnectionStrings.ConnectionStrings;
@@ -83,7 +96,6 @@ public partial class DataMigration : Form
         ConfigurationManager.RefreshSection("connectionStrings");
         try
         {
-            //源数据库SqlSugar配置
             ConnectionConfig sourceConfig = new ConnectionConfig();
             sourceConfig.ConfigId = 1;
             sourceConfig.ConnectionString = sourceConnStr;
@@ -108,13 +120,8 @@ public partial class DataMigration : Form
                 {
                     if (commonColumns.IsNotEmptyOrNull() && sql.ToLower().Contains($"select {commonColumns}"))
                     {
-                        string logFilePath = "logs/sourceDb.log";
-
-                        // 确保日志目录存在
-                        Directory.CreateDirectory(Path.GetDirectoryName(logFilePath));
-
                         // 打开日志文件，将日志写入文件末尾
-                        using (StreamWriter writer = File.AppendText(logFilePath))
+                        using (StreamWriter writer = File.AppendText(sourceDblogFilePath))
                         {
                             writer.WriteLine("sql：" + sql);
                             writer.WriteLine("pars：" + pars);
@@ -123,7 +130,6 @@ public partial class DataMigration : Form
                 };
             });
 
-            //目标数据库SqlSugar配置
             ConnectionConfig toConfig = new ConnectionConfig();
             toConfig.ConfigId = 1;
             toConfig.ConnectionString = toConnStr;
@@ -145,13 +151,8 @@ public partial class DataMigration : Form
                 {
                     if (!sql.ToLower().Contains("select"))
                     {
-                        string logFilePath = "logs/toDb.log";
-
-                        // 确保日志目录存在
-                        Directory.CreateDirectory(Path.GetDirectoryName(logFilePath));
-
                         // 打开日志文件，将日志写入文件末尾
-                        using (StreamWriter writer = File.AppendText(logFilePath))
+                        using (StreamWriter writer = File.AppendText(toDbLogFilePath))
                         {
                             writer.WriteLine("sql：" + sql);
                             writer.WriteLine("pars：" + pars);
@@ -186,10 +187,10 @@ public partial class DataMigration : Form
                                 IsNullable = item.IsNullable,
                                 ColumnDescription = item.ColumnDescription
                             };
-                            if (propertyType != typeof(DateTime))
+                            if (propertyType != typeof(DateTime) && !item.DefaultValue.ObjToString().ToLower().Contains("newid"))
                             {
                                 column.DecimalDigits = item.DecimalDigits;
-                                column.DefaultValue = item.DefaultValue;
+                                column.DefaultValue = item.DefaultValue.ObjToString().Replace("(", "").Replace(")", "");
                             }
                             if (propertyType == typeof(string) && item.Length < 4000)
                             {
@@ -235,13 +236,8 @@ public partial class DataMigration : Form
                 }
                 catch (Exception ex)
                 {
-                    string logFilePath = "logs/error.log";
-
-                    // 确保日志目录存在
-                    Directory.CreateDirectory(Path.GetDirectoryName(logFilePath));
-
                     // 打开日志文件，将日志写入文件末尾
-                    using (StreamWriter writer = File.AppendText(logFilePath))
+                    using (StreamWriter writer = File.AppendText(errorLogFilePath))
                     {
                         writer.WriteLine("tableName：" + table.Name);
                         writer.WriteLine("错误信息：" + ex.Message);
