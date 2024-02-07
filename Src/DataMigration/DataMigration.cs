@@ -184,7 +184,7 @@ public partial class DataMigration : Form
                                 column.DecimalDigits = item.DecimalDigits;
                                 column.DefaultValue = item.DefaultValue.ObjToString().Replace("(", "").Replace(")", "");
                             }
-                            if (propertyType == typeof(string) && item.Length < 4000)
+                            if ((propertyType == typeof(string) && item.Length < 4000) || propertyType == typeof(decimal))
                             {
                                 column.Length = item.Length;
                             }
