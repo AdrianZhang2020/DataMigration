@@ -161,6 +161,7 @@ public partial class DataMigration : Form
                 try
                 {
                     var sourceColumns = sourceDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询源数据库当前表所有字段
+                    var sourceDtColumns = (sourceDb.Queryable<DataTable>().AS(table.Name).Select("*").Where(w => false).ToDataTable()).Columns;//获取当前表字段DataColums
 
                     if (isStructure || isAll)
                     {
@@ -168,10 +169,11 @@ public partial class DataMigration : Form
 
                         foreach (var item in sourceColumns)
                         {
-                            DbFirstProvider dbFirstProvider = new DbFirstProvider();
+                            /*DbFirstProvider dbFirstProvider = new DbFirstProvider();
                             DbFirstHelper dbFirstHelper = new DbFirstHelper();
                             string propertyTypeName = dbFirstHelper.GetPropertyTypeName(item, sourceDb).Replace("?", "");
-                            Type propertyType = DbFirstProvider.GetPropertyType(propertyTypeName);
+                            Type propertyType = DbFirstProvider.GetPropertyType(propertyTypeName);*/
+                            Type propertyType = sourceDtColumns[item.DbColumnName].DataType;//获取当前字段对应的C#类型
                             var column = new SugarColumn()
                             {
                                 IsPrimaryKey = item.IsPrimarykey,
