@@ -6,17 +6,18 @@ namespace DataMigration;
 public partial class DataMigration : Form
 {
     private static string commonColumns = "";
+    private const string textTableNames = "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表";
     public DataMigration()
     {
         InitializeComponent();
-        this.txtTableNames.Text = "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表";
+        this.txtTableNames.Text = textTableNames;
         this.txtTableNames.ForeColor = Color.Gray;
         this.txtTableNames.GotFocus += txtTableNames_GotFocus;
         this.txtTableNames.LostFocus += txtTableNames_LostFocus;
     }
     private void txtTableNames_GotFocus(object sender, EventArgs e)
     {
-        if (txtTableNames.Text == "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表")
+        if (txtTableNames.Text == textTableNames)
         {
             txtTableNames.Text = "";
             txtTableNames.ForeColor = SystemColors.WindowText;
@@ -27,7 +28,7 @@ public partial class DataMigration : Form
     {
         if (string.IsNullOrWhiteSpace(txtTableNames.Text))
         {
-            txtTableNames.Text = "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表";
+            txtTableNames.Text = textTableNames;
             txtTableNames.ForeColor = Color.Gray;
         }
     }
@@ -48,7 +49,7 @@ public partial class DataMigration : Form
         var msg = "";
         var sourceConnStr = this.txtSourceConn.Text.Trim();//获取源数据库连接字符串
         var toConnStr = this.txtToConn.Text.Trim();//获取目标数据库连接字符串
-        var tableName = this.txtTableNames.Text.Trim().Replace("需要同步的表名，多个用英文逗号隔开，为空默认同步所有表", "");//获取需要同步的表名
+        var tableName = this.txtTableNames.Text.Trim().Replace(textTableNames, "");//获取需要同步的表名
         var tables = tableName.IsNotEmptyOrNull() ? tableName.ToLower().Split(',') : null;
         if (sourceConnStr.IsNullOrEmpty() || toConnStr.IsNullOrEmpty())
         {
