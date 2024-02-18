@@ -9,14 +9,14 @@ public partial class DataMigration : Form
     public DataMigration()
     {
         InitializeComponent();
-        this.txtTableNames.Text = "ĞèÒªÍ¬²½µÄ±íÃû£¬¶à¸öÓÃÓ¢ÎÄ¶ººÅ¸ô¿ª£¬Îª¿ÕÄ¬ÈÏÍ¬²½ËùÓĞ±í";
+        this.txtTableNames.Text = "éœ€è¦åŒæ­¥çš„è¡¨åï¼Œå¤šä¸ªç”¨è‹±æ–‡é€—å·éš”å¼€ï¼Œä¸ºç©ºé»˜è®¤åŒæ­¥æ‰€æœ‰è¡¨";
         this.txtTableNames.ForeColor = Color.Gray;
         this.txtTableNames.GotFocus += txtTableNames_GotFocus;
         this.txtTableNames.LostFocus += txtTableNames_LostFocus;
     }
     private void txtTableNames_GotFocus(object sender, EventArgs e)
     {
-        if (txtTableNames.Text == "ĞèÒªÍ¬²½µÄ±íÃû£¬¶à¸öÓÃÓ¢ÎÄ¶ººÅ¸ô¿ª£¬Îª¿ÕÄ¬ÈÏÍ¬²½ËùÓĞ±í")
+        if (txtTableNames.Text == "éœ€è¦åŒæ­¥çš„è¡¨åï¼Œå¤šä¸ªç”¨è‹±æ–‡é€—å·éš”å¼€ï¼Œä¸ºç©ºé»˜è®¤åŒæ­¥æ‰€æœ‰è¡¨")
         {
             txtTableNames.Text = "";
             txtTableNames.ForeColor = SystemColors.WindowText;
@@ -27,7 +27,7 @@ public partial class DataMigration : Form
     {
         if (string.IsNullOrWhiteSpace(txtTableNames.Text))
         {
-            txtTableNames.Text = "ĞèÒªÍ¬²½µÄ±íÃû£¬¶à¸öÓÃÓ¢ÎÄ¶ººÅ¸ô¿ª£¬Îª¿ÕÄ¬ÈÏÍ¬²½ËùÓĞ±í";
+            txtTableNames.Text = "éœ€è¦åŒæ­¥çš„è¡¨åï¼Œå¤šä¸ªç”¨è‹±æ–‡é€—å·éš”å¼€ï¼Œä¸ºç©ºé»˜è®¤åŒæ­¥æ‰€æœ‰è¡¨";
             txtTableNames.ForeColor = Color.Gray;
         }
     }
@@ -46,21 +46,21 @@ public partial class DataMigration : Form
     private async void btnDataMigration_Click(object sender, EventArgs e)
     {
         var msg = "";
-        var sourceConnStr = this.txtSourceConn.Text.Trim();//»ñÈ¡Ô´Êı¾İ¿âÁ¬½Ó×Ö·û´®
-        var toConnStr = this.txtToConn.Text.Trim();//»ñÈ¡Ä¿±êÊı¾İ¿âÁ¬½Ó×Ö·û´®
-        var tableName = this.txtTableNames.Text.Trim().Replace("ĞèÒªÍ¬²½µÄ±íÃû£¬¶à¸öÓÃÓ¢ÎÄ¶ººÅ¸ô¿ª£¬Îª¿ÕÄ¬ÈÏÍ¬²½ËùÓĞ±í", "");//»ñÈ¡ĞèÒªÍ¬²½µÄ±íÃû
+        var sourceConnStr = this.txtSourceConn.Text.Trim();//è·å–æºæ•°æ®åº“è¿æ¥å­—ç¬¦ä¸²
+        var toConnStr = this.txtToConn.Text.Trim();//è·å–ç›®æ ‡æ•°æ®åº“è¿æ¥å­—ç¬¦ä¸²
+        var tableName = this.txtTableNames.Text.Trim().Replace("éœ€è¦åŒæ­¥çš„è¡¨åï¼Œå¤šä¸ªç”¨è‹±æ–‡é€—å·éš”å¼€ï¼Œä¸ºç©ºé»˜è®¤åŒæ­¥æ‰€æœ‰è¡¨", "");//è·å–éœ€è¦åŒæ­¥çš„è¡¨å
         var tables = tableName.IsNotEmptyOrNull() ? tableName.ToLower().Split(',') : null;
         if (sourceConnStr.IsNullOrEmpty() || toConnStr.IsNullOrEmpty())
         {
-            MessageBox.Show("ÇëÊäÈëÔ´Êı¾İ¿âÁ´½ÓºÍÄ¿±êÊı¾İ¿âÁ´½Óºó½øĞĞÇ¨ÒÆ", "Ç¨ÒÆÒì³£", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show("è¯·è¾“å…¥æºæ•°æ®åº“é“¾æ¥å’Œç›®æ ‡æ•°æ®åº“é“¾æ¥åè¿›è¡Œè¿ç§»", "è¿ç§»å¼‚å¸¸", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
         if (!(this.cmbSourceDbType.SelectedIndex >= 0) || !(this.cmbToDbType.SelectedIndex >= 0))
         {
-            MessageBox.Show("ÇëÑ¡ÔñÔ´Êı¾İ¿âÀàĞÍºÍÄ¿±êÊı¾İ¿âÀàĞÍºó½øĞĞÇ¨ÒÆ", "Ç¨ÒÆÒì³£", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show("è¯·é€‰æ‹©æºæ•°æ®åº“ç±»å‹å’Œç›®æ ‡æ•°æ®åº“ç±»å‹åè¿›è¡Œè¿ç§»", "è¿ç§»å¼‚å¸¸", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        //½«´°ÌåËùÓĞ¿Ø¼şÉèÎª²»¿ÉÓÃ
+        //å°†çª—ä½“æ‰€æœ‰æ§ä»¶è®¾ä¸ºä¸å¯ç”¨
         var isStructure = this.rdoStructure.Checked;
         var isData = this.rdoData.Checked;
         var isAll = this.rdoAll.Checked;
@@ -74,20 +74,12 @@ public partial class DataMigration : Form
         this.rdoData.Enabled = false;
         this.rdoAll.Enabled = false;
 
-        string sourceDblogFilePath = Path.GetDirectoryName("logs/sourceDb.log");
-        string toDbLogFilePath = Path.GetDirectoryName("logs/toDb.log");
-        string errorLogFilePath = Path.GetDirectoryName("logs/error.log");
-        if (File.Exists(sourceDblogFilePath))
-            File.Delete(sourceDblogFilePath);
-        if (File.Exists(toDbLogFilePath))
-            File.Delete(toDbLogFilePath);
-        if (File.Exists(errorLogFilePath))
-            File.Delete(errorLogFilePath);
-        Directory.CreateDirectory(sourceDblogFilePath);
-        Directory.CreateDirectory(toDbLogFilePath);
-        Directory.CreateDirectory(errorLogFilePath);
+        string sourceDblogFilePath = "logs/sourceDb.log";
+        string toDbLogFilePath = "logs/toDb.log";
+        string errorLogFilePath = "logs/error.log";
+        Directory.CreateDirectory(Path.GetDirectoryName(sourceDblogFilePath));
 
-        //±£´æÔ´Êı¾İ¿âÁ´½ÓºÍÄ¿±êÊı¾İ¿âÁ´½Óµ½config
+        //ä¿å­˜æºæ•°æ®åº“é“¾æ¥å’Œç›®æ ‡æ•°æ®åº“é“¾æ¥åˆ°config
         Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
         var connectionStrings = config.ConnectionStrings.ConnectionStrings;
         connectionStrings["sourceConnStr"].ConnectionString = sourceConnStr;
@@ -111,7 +103,7 @@ public partial class DataMigration : Form
             }
             else
             {
-                MessageBox.Show("²Ù×÷Ê§°Ü£¬Êı¾İ¿âÀàĞÍÒì³£", "Ç¨ÒÆÒì³£", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("æ“ä½œå¤±è´¥ï¼Œæ•°æ®åº“ç±»å‹å¼‚å¸¸", "è¿ç§»å¼‚å¸¸", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             SqlSugarClient sourceDb = new SqlSugarClient(sourceConfig, db =>
@@ -120,11 +112,11 @@ public partial class DataMigration : Form
                 {
                     if (commonColumns.IsNotEmptyOrNull() && sql.ToLower().Contains($"select {commonColumns}"))
                     {
-                        // ´ò¿ªÈÕÖ¾ÎÄ¼ş£¬½«ÈÕÖ¾Ğ´ÈëÎÄ¼şÄ©Î²
+                        // æ‰“å¼€æ—¥å¿—æ–‡ä»¶ï¼Œå°†æ—¥å¿—å†™å…¥æ–‡ä»¶æœ«å°¾
                         using (StreamWriter writer = File.AppendText(sourceDblogFilePath))
                         {
-                            writer.WriteLine("sql£º" + sql);
-                            writer.WriteLine("pars£º" + pars);
+                            writer.WriteLine("sqlï¼š" + sql);
+                            writer.WriteLine("parsï¼š" + pars);
                         }
                     }
                 };
@@ -144,31 +136,32 @@ public partial class DataMigration : Form
                 toConfig.DbType = to;
             }
             else
-                MessageBox.Show("²Ù×÷Ê§°Ü£¬Êı¾İ¿âÀàĞÍÒì³£", "Ç¨ÒÆÒì³£", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("æ“ä½œå¤±è´¥ï¼Œæ•°æ®åº“ç±»å‹å¼‚å¸¸", "è¿ç§»å¼‚å¸¸", MessageBoxButtons.OK, MessageBoxIcon.Error);
             SqlSugarClient toDb = new SqlSugarClient(toConfig, db =>
             {
                 db.Aop.OnLogExecuting = (sql, pars) =>
                 {
                     if (!sql.ToLower().Contains("select"))
                     {
-                        // ´ò¿ªÈÕÖ¾ÎÄ¼ş£¬½«ÈÕÖ¾Ğ´ÈëÎÄ¼şÄ©Î²
+                        // æ‰“å¼€æ—¥å¿—æ–‡ä»¶ï¼Œå°†æ—¥å¿—å†™å…¥æ–‡ä»¶æœ«å°¾
                         using (StreamWriter writer = File.AppendText(toDbLogFilePath))
                         {
-                            writer.WriteLine("sql£º" + sql);
-                            writer.WriteLine("pars£º" + pars);
+                            writer.WriteLine("sqlï¼š" + sql);
+                            writer.WriteLine("parsï¼š" + pars);
                         }
                     }
                 };
             });
 
-            var tableList = sourceDb.DbMaintenance.GetTableInfoList(false);//²éÑ¯Ô´Êı¾İ¿âËùÓĞ±í
+            var tableList = sourceDb.DbMaintenance.GetTableInfoList(false);//æŸ¥è¯¢æºæ•°æ®åº“æ‰€æœ‰è¡¨
             if (tables != null && tables.Length > 0)
                 tableList = tableList.Where(w => tables.Contains(w.Name.ToLower())).ToList();
             foreach (var table in tableList)
             {
                 try
                 {
-                    var sourceColumns = sourceDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//²éÑ¯Ô´Êı¾İ¿âµ±Ç°±íËùÓĞ×Ö¶Î
+                    var sourceColumns = sourceDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//æŸ¥è¯¢æºæ•°æ®åº“å½“å‰è¡¨æ‰€æœ‰å­—æ®µ
+                    var sourceDtColumns = (sourceDb.Queryable<DataTable>().AS(table.Name).Select("*").Where(w => false).ToDataTable()).Columns;//è·å–å½“å‰è¡¨å­—æ®µDataColums
 
                     if (isStructure || isAll)
                     {
@@ -176,10 +169,11 @@ public partial class DataMigration : Form
 
                         foreach (var item in sourceColumns)
                         {
-                            DbFirstProvider dbFirstProvider = new DbFirstProvider();
+                            /*DbFirstProvider dbFirstProvider = new DbFirstProvider();
                             DbFirstHelper dbFirstHelper = new DbFirstHelper();
                             string propertyTypeName = dbFirstHelper.GetPropertyTypeName(item, sourceDb).Replace("?", "");
-                            Type propertyType = DbFirstProvider.GetPropertyType(propertyTypeName);
+                            Type propertyType = DbFirstProvider.GetPropertyType(propertyTypeName);*/
+                            Type propertyType = sourceDtColumns[item.DbColumnName].DataType;//è·å–å½“å‰å­—æ®µå¯¹åº”çš„C#ç±»å‹
                             var column = new SugarColumn()
                             {
                                 IsPrimaryKey = item.IsPrimarykey,
@@ -192,7 +186,7 @@ public partial class DataMigration : Form
                                 column.DecimalDigits = item.DecimalDigits;
                                 column.DefaultValue = item.DefaultValue.ObjToString().Replace("(", "").Replace(")", "");
                             }
-                            if (propertyType == typeof(string) && item.Length < 4000)
+                            if ((propertyType == typeof(string) && item.Length < 4000) || propertyType == typeof(decimal))
                             {
                                 column.Length = item.Length;
                             }
@@ -203,32 +197,32 @@ public partial class DataMigration : Form
 
                             typeBilder.CreateProperty(item.DbColumnName, propertyType, column);
                         }
-                        //´´½¨Àà
+                        //åˆ›å»ºç±»
                         var type = typeBilder.BuilderType();
 
                         if (toDb.DbMaintenance.IsAnyTable(table.Name, false))
                             toDb.DbMaintenance.DropTable(table.Name);
 
-                        //´´½¨±í
+                        //åˆ›å»ºè¡¨
                         toDb.CodeFirst.InitTables(type);
                     }
 
                     if (isData || isAll)
                     {
-                        if (toDb.DbMaintenance.IsAnyTable(table.Name, false))//ÅĞ¶ÏÄ¿±êÊı¾İ¿âµ±Ç°±íÊÇ·ñ´æÔÚ
+                        if (toDb.DbMaintenance.IsAnyTable(table.Name, false))//åˆ¤æ–­ç›®æ ‡æ•°æ®åº“å½“å‰è¡¨æ˜¯å¦å­˜åœ¨
                         {
                             await Task.Run(() =>
                             {
-                                var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//²éÑ¯Ä¿±êÊı¾İ¿âµ±Ç°±íËùÓĞ×Ö¶Î
+                                var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//æŸ¥è¯¢ç›®æ ‡æ•°æ®åº“å½“å‰è¡¨æ‰€æœ‰å­—æ®µ
                                 commonColumns = string.Join(",", sourceColumns
-                                    .Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToList());//È¡³öÁ½±ß±íÖĞ¶¼´æÔÚµÄ×Ö¶Î²¢ÒÔ¶ººÅÆ´½Ó                                
+                                    .Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToList());//å–å‡ºä¸¤è¾¹è¡¨ä¸­éƒ½å­˜åœ¨çš„å­—æ®µå¹¶ä»¥é€—å·æ‹¼æ¥                                
                                 var dataCount = sourceDb.Queryable<DataTable>().AS(table.Name).Count();
                                 var pageSize = 100000;
                                 var pageCount = Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
                                 for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++)
                                 {
-                                    var data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(commonColumns).ToDataTablePage(pageIndex, pageSize);//·ÖÒ³²éÑ¯Ô´Êı¾İ¿âµ±Ç°±íÊı¾İ
-                                    toDb.CopyNew().Fastest<DataTable>().AS(table.Name).BulkCopy(data);//½«Êı¾İ·ÖÒ³ÅúÁ¿²åÈëµ½Ä¿±ê±íÖĞ
+                                    var data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(commonColumns).ToDataTablePage(pageIndex, pageSize);//åˆ†é¡µæŸ¥è¯¢æºæ•°æ®åº“å½“å‰è¡¨æ•°æ®
+                                    toDb.CopyNew().Fastest<DataTable>().AS(table.Name).BulkCopy(data);//å°†æ•°æ®åˆ†é¡µæ‰¹é‡æ’å…¥åˆ°ç›®æ ‡è¡¨ä¸­
                                 }
                             });
                         }
@@ -236,19 +230,19 @@ public partial class DataMigration : Form
                 }
                 catch (Exception ex)
                 {
-                    // ´ò¿ªÈÕÖ¾ÎÄ¼ş£¬½«ÈÕÖ¾Ğ´ÈëÎÄ¼şÄ©Î²
+                    // æ‰“å¼€æ—¥å¿—æ–‡ä»¶ï¼Œå°†æ—¥å¿—å†™å…¥æ–‡ä»¶æœ«å°¾
                     using (StreamWriter writer = File.AppendText(errorLogFilePath))
                     {
-                        writer.WriteLine("tableName£º" + table.Name);
-                        writer.WriteLine("´íÎóĞÅÏ¢£º" + ex.Message);
+                        writer.WriteLine("tableNameï¼š" + table.Name);
+                        writer.WriteLine("é”™è¯¯ä¿¡æ¯ï¼š" + ex.Message);
                     }
-                    msg += "tableName£º" + table.Name + "£¬" + "´íÎóĞÅÏ¢£º" + ex.Message + "\r\n";
+                    msg += "tableNameï¼š" + table.Name + "ï¼Œ" + "é”™è¯¯ä¿¡æ¯ï¼š" + ex.Message + "\r\n";
                 }
             }
             if (msg.IsNotEmptyOrNull())
-                MessageBox.Show("Ç¨ÒÆÊ§°Ü£º" + msg, "ÌáÊ¾", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("è¿ç§»å¤±è´¥ï¼š" + msg, "æç¤º", MessageBoxButtons.OK, MessageBoxIcon.Error);
             else
-                MessageBox.Show("Ç¨ÒÆ³É¹¦", "ÌáÊ¾", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("è¿ç§»æˆåŠŸ", "æç¤º", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.btnDataMigration.Enabled = true;
             this.cmbSourceDbType.Enabled = true;
             this.cmbToDbType.Enabled = true;
@@ -261,7 +255,7 @@ public partial class DataMigration : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Ç¨ÒÆÊ§°Ü£º" + ex.Message, "ÌáÊ¾", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("è¿ç§»å¤±è´¥ï¼š" + ex.Message, "æç¤º", MessageBoxButtons.OK, MessageBoxIcon.Error);
             this.btnDataMigration.Enabled = true;
             this.cmbSourceDbType.Enabled = true;
             this.cmbToDbType.Enabled = true;
