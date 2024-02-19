@@ -5,8 +5,11 @@ namespace DataMigration;
 
 public partial class DataMigration : Form
 {
+    private static List<DataMigrationDto> gridList;
+    private static DataMigrationDto gridModel;
     private static string commonColumns = "";
     private const string textTableNames = "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表";
+    private static int rowIndex = 1;
     public DataMigration()
     {
         InitializeComponent();
@@ -14,6 +17,15 @@ public partial class DataMigration : Form
         this.txtTableNames.ForeColor = Color.Gray;
         this.txtTableNames.GotFocus += txtTableNames_GotFocus;
         this.txtTableNames.LostFocus += txtTableNames_LostFocus;
+
+        this.userPage.CurrentPage = 1;
+        this.userPage.PageSize = Convert.ToInt32(this.userPage.CboPageSize.Text);
+        this.userPage.TotalPages = 1;
+        this.userPage.ClickPageButtonEvent += userPage_ClickPageButtonEvent;
+        this.userPage.ChangedPageSizeEvent += userPage_ChangedPageSizeEvent;
+        this.userPage.JumpPageEvent += userPage_JumpPageEvent;
+        this.StartPosition = FormStartPosition.CenterScreen;
+        this.InitDataGridViewCtrl();
     }
     private void txtTableNames_GotFocus(object sender, EventArgs e)
     {
@@ -79,6 +91,12 @@ public partial class DataMigration : Form
         string toDbLogFilePath = "logs/toDb.log";
         string errorLogFilePath = "logs/error.log";
         Directory.CreateDirectory(Path.GetDirectoryName(sourceDblogFilePath));
+        if (File.Exists(sourceDblogFilePath))
+            File.Delete(sourceDblogFilePath);
+        if (File.Exists(toDbLogFilePath))
+            File.Delete(toDbLogFilePath);
+        if (File.Exists(errorLogFilePath))
+            File.Delete(errorLogFilePath);
 
         //保存源数据库链接和目标数据库链接到config
         Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -89,6 +107,7 @@ public partial class DataMigration : Form
         ConfigurationManager.RefreshSection("connectionStrings");
         try
         {
+            dgvDataMigration.DataSource = null;
             ConnectionConfig sourceConfig = new ConnectionConfig();
             sourceConfig.ConfigId = 1;
             sourceConfig.ConnectionString = sourceConnStr;
@@ -144,6 +163,7 @@ public partial class DataMigration : Form
                 {
                     if (!sql.ToLower().Contains("select"))
                     {
+                        gridModel.Sql += sql + ";\r\n";
                         // 打开日志文件，将日志写入文件末尾
                         using (StreamWriter writer = File.AppendText(toDbLogFilePath))
                         {
@@ -154,83 +174,45 @@ public partial class DataMigration : Form
                 };
             });
 
+            gridList = new List<DataMigrationDto>();
+
             var tableList = sourceDb.DbMaintenance.GetTableInfoList(false);//查询源数据库所有表
             if (tables != null && tables.Length > 0)
                 tableList = tableList.Where(w => tables.Contains(w.Name.ToLower())).ToList();
+            tableList = tableList.OrderBy(o => o.Name).ToList();
             foreach (var table in tableList)
             {
+                gridModel = new DataMigrationDto()
+                {
+                    TableName = table.Name,
+                    TableDescription = table.Description,
+                    IsStructure = "否",
+                    IsData = "否",
+                    CreateTime = DateTime.Now
+                };
+
+                if (isStructure || isAll)
+                    gridModel.IsStructure = "是";
+                if (isData || isAll)
+                    gridModel.IsData = "是";
+
                 try
                 {
-                    var sourceColumns = sourceDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询源数据库当前表所有字段
-                    var sourceDtColumns = (sourceDb.Queryable<DataTable>().AS(table.Name).Select("*").Where(w => false).ToDataTable()).Columns;//获取当前表字段DataColums
+                    var sourceColumns = sourceDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询源数据库当前表所有字段                    
 
                     if (isStructure || isAll)
                     {
-                        var typeBilder = toDb.DynamicBuilder().CreateClass(table.Name, new SugarTable() { TableDescription = table.Description });
-
-                        foreach (var item in sourceColumns)
-                        {
-                            /*DbFirstProvider dbFirstProvider = new DbFirstProvider();
-                            DbFirstHelper dbFirstHelper = new DbFirstHelper();
-                            string propertyTypeName = dbFirstHelper.GetPropertyTypeName(item, sourceDb).Replace("?", "");
-                            Type propertyType = DbFirstProvider.GetPropertyType(propertyTypeName);*/
-                            Type propertyType = sourceDtColumns[item.DbColumnName].DataType;//获取当前字段对应的C#类型
-                            var column = new SugarColumn()
-                            {
-                                IsPrimaryKey = item.IsPrimarykey,
-                                IsIdentity = item.IsIdentity,
-                                IsNullable = item.IsNullable,
-                                ColumnDescription = item.ColumnDescription
-                            };
-                            if (propertyType != typeof(DateTime) && !item.DefaultValue.ObjToString().ToLower().Contains("newid"))
-                            {
-                                column.DecimalDigits = item.DecimalDigits;
-                                column.DefaultValue = item.DefaultValue.ObjToString().Replace("(", "").Replace(")", "");
-                            }
-                            if ((propertyType == typeof(string) && item.Length < 4000) || propertyType == typeof(decimal))
-                            {
-                                column.Length = item.Length;
-                            }
-                            if (item.Length >= 4000 || item.Length == -1)
-                            {
-                                column.ColumnDataType = StaticConfig.CodeFirst_BigString;
-                            }
-
-                            typeBilder.CreateProperty(item.DbColumnName, propertyType, column);
-                        }
-                        //创建类
-                        var type = typeBilder.BuilderType();
-
-                        if (toDb.DbMaintenance.IsAnyTable(table.Name, false))
-                            toDb.DbMaintenance.DropTable(table.Name);
-
-                        //创建表
-                        toDb.CodeFirst.InitTables(type);
+                        StructuralMigration(sourceDb, toDb, table, gridModel, sourceColumns);
                     }
 
                     if (isData || isAll)
                     {
-                        if (toDb.DbMaintenance.IsAnyTable(table.Name, false))//判断目标数据库当前表是否存在
-                        {
-                            await Task.Run(() =>
-                            {
-                                var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询目标数据库当前表所有字段
-                                commonColumns = string.Join(",", sourceColumns
-                                    .Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToList());//取出两边表中都存在的字段并以逗号拼接                                
-                                var dataCount = sourceDb.Queryable<DataTable>().AS(table.Name).Count();
-                                var pageSize = 100000;
-                                var pageCount = Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
-                                for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++)
-                                {
-                                    var data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(commonColumns).ToDataTablePage(pageIndex, pageSize);//分页查询源数据库当前表数据
-                                    toDb.CopyNew().Fastest<DataTable>().AS(table.Name).BulkCopy(data);//将数据分页批量插入到目标表中
-                                }
-                            });
-                        }
+                        await Task.Run(() => MigrationData(sourceDb, toDb, table, gridModel, sourceColumns));
                     }
                 }
                 catch (Exception ex)
                 {
+                    gridModel.ErrMessage = ex.Message;
                     // 打开日志文件，将日志写入文件末尾
                     using (StreamWriter writer = File.AppendText(errorLogFilePath))
                     {
@@ -239,6 +221,10 @@ public partial class DataMigration : Form
                     }
                     msg += "tableName：" + table.Name + "，" + "错误信息：" + ex.Message + "\r\n";
                 }
+                gridModel.StructureStatus = gridModel.StructureStatus.IsNullOrEmpty() ? "-" : gridModel.StructureStatus;
+                gridModel.DataStatus = gridModel.DataStatus.IsNullOrEmpty() ? "-" : gridModel.DataStatus;
+                gridList.Add(gridModel);
+                this.ShowDatas(this.userPage.CurrentPage == 0 ? 1 : this.userPage.CurrentPage);
             }
             if (msg.IsNotEmptyOrNull())
                 MessageBox.Show("迁移失败：" + msg, "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -268,4 +254,238 @@ public partial class DataMigration : Form
             this.rdoAll.Enabled = true;
         }
     }
+
+    private static void MigrationData(SqlSugarClient sourceDb, SqlSugarClient toDb, DbTableInfo? table, DataMigrationDto gridModel, List<DbColumnInfo> sourceColumns)
+    {
+        if (toDb.DbMaintenance.IsAnyTable(table.Name, false))//判断目标数据库当前表是否存在
+        {
+            try
+            {
+                var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询目标数据库当前表所有字段
+                commonColumns = string.Join(",", sourceColumns
+                    .Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToList());//取出两边表中都存在的字段并以逗号拼接
+                                                                                                                                                    //var data = sourceDb.Ado.GetDataTable($@"select {commonColumns} from {table.Name}");//查询源数据库当前表所有数据
+                var dataCount = sourceDb.Queryable<DataTable>().AS(table.Name).Count();
+                gridModel.DataCount = dataCount;
+                var pageSize = 100000;
+                var pageCount = Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
+                for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++)
+                {
+                    var data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(commonColumns).ToDataTablePage(pageIndex, pageSize);
+                    toDb.CopyNew().Fastest<DataTable>().AS(table.Name).BulkCopy(data);//将数据分页批量插入到目标表中
+                }
+                gridModel.DataStatus = "成功";
+            }
+            catch (Exception ex)
+            {
+                gridModel.DataStatus = "失败";
+                throw ex;
+            }
+        }
+    }
+
+    private static void StructuralMigration(SqlSugarClient sourceDb, SqlSugarClient toDb, DbTableInfo? table, DataMigrationDto gridModel, List<DbColumnInfo> sourceColumns)
+    {
+        try
+        {
+            var sourceDtColumns = (sourceDb.Queryable<DataTable>().AS(table.Name).Select("*").Where(w => false).ToDataTable()).Columns;
+
+            var typeBilder = toDb.DynamicBuilder().CreateClass(table.Name, new SugarTable() { TableDescription = table.Description });
+
+            foreach (var item in sourceColumns)
+            {
+                /* DbFirstProvider dbFirstProvider = new DbFirstProvider();
+                 DbFirstHelper dbFirstHelper = new DbFirstHelper();
+                 string propertyTypeName = dbFirstHelper.GetPropertyTypeName(item, sourceDb).Replace("?", "");
+                 Type propertyType = DbFirstProvider.GetPropertyType(propertyTypeName);*/
+                Type propertyType = sourceDtColumns[item.DbColumnName].DataType;
+                var column = new SugarColumn()
+                {
+                    IsPrimaryKey = item.IsPrimarykey,
+                    IsIdentity = item.IsIdentity,
+                    IsNullable = item.IsNullable,
+                    ColumnDescription = item.ColumnDescription
+                };
+                if (propertyType != typeof(DateTime) && !item.DefaultValue.ObjToString().ToLower().Contains("newid"))
+                {
+                    column.DecimalDigits = item.DecimalDigits;
+                    column.DefaultValue = item.DefaultValue.ObjToString().Replace("(", "").Replace(")", "").Replace("'", "");
+                }
+                if ((propertyType == typeof(string) && item.Length < 4000) || propertyType == typeof(decimal))
+                {
+                    column.Length = item.Length;
+                }
+                if (item.Length >= 4000 || item.Length == -1)
+                {
+                    column.ColumnDataType = StaticConfig.CodeFirst_BigString;
+                }
+
+                typeBilder.CreateProperty(item.DbColumnName, propertyType, column);
+            }
+            //创建类
+            var type = typeBilder.BuilderType();
+
+            var toDbNew = toDb.CopyNew();
+            if (toDbNew.DbMaintenance.IsAnyTable(table.Name, false))
+                toDbNew.DbMaintenance.DropTable(table.Name);
+
+            //创建表
+            toDbNew.CodeFirst.InitTables(type);
+
+            gridModel.StructureStatus = "成功";
+        }
+        catch (Exception ex)
+        {
+            gridModel.StructureStatus = "失败";
+            throw ex;
+        }
+    }
+
+    /// <summary>
+    /// 页数跳转
+    /// </summary>
+    /// <param name="jumpPage">跳转页</param>
+    void userPage_JumpPageEvent(int jumpPage)
+    {
+        if (jumpPage <= this.userPage.TotalPages)
+        {
+            if (jumpPage > 0)
+            {
+                this.userPage.JumpPageCtrl.Text = string.Empty;
+                this.userPage.JumpPageCtrl.Text = jumpPage.ToString();
+                this.ShowDatas(jumpPage);
+            }
+            else
+            {
+                jumpPage = 1;
+                this.userPage.JumpPageCtrl.Text = string.Empty;
+                this.userPage.JumpPageCtrl.Text = jumpPage.ToString();
+                this.ShowDatas(jumpPage);
+            }
+        }
+        else
+        {
+            this.userPage.JumpPageCtrl.Text = string.Empty;
+            MessageBox.Show(@"超出当前最大页数", @"提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+    /// <summary>
+    /// 改变每页展示数据长度
+    /// </summary>
+    void userPage_ChangedPageSizeEvent()
+    {
+        this.ShowDatas(1);
+    }
+    /// <summary>
+    /// 页数改变按钮(最前页,最后页,上一页,下一页)
+    /// </summary>
+    /// <param name="current"></param>
+    void userPage_ClickPageButtonEvent(int current)
+    {
+        if (current > this.userPage.TotalPages)
+            this.ShowDatas(this.userPage.TotalPages);
+        else
+            this.ShowDatas(current);
+    }
+    /// <summary>
+    /// 初始化DataGridView控件
+    /// </summary>
+    private void InitDataGridViewCtrl()
+    {
+        this.ShowDatas(1);
+    }
+    /// <summary>
+    /// 数据展示
+    /// </summary>
+    /// <param name="currentPage">当前页</param>
+    private void ShowDatas(int currentPage)
+    {
+        int totalPages = 0;
+        int totalRows = 0;
+        if (null == gridList || gridList.Count == 0)
+        {
+            this.userPage.PageInfo.Text = string.Format("第{0}/{1}页", "1", "1");
+            this.userPage.TotalRows.Text = @"0";
+            this.userPage.CurrentPage = 1;
+            this.userPage.TotalPages = 1;
+        }
+        else
+        {
+            rowIndex = (currentPage - 1) * this.userPage.PageSize + 1;
+            var dataList = gridList.OrderBy(o => o.CreateTime).Skip((currentPage - 1) * this.userPage.PageSize).Take(this.userPage.PageSize).ToList();
+            totalRows = gridList.Count;
+            totalPages = totalRows % this.userPage.PageSize == 0 ? totalRows / this.userPage.PageSize : (totalRows / this.userPage.PageSize) + 1;
+            this.userPage.PageInfo.Text = string.Format("第{0}/{1}页", currentPage, totalPages);
+            this.userPage.TotalRows.Text = totalRows.ToString();
+            this.userPage.CurrentPage = currentPage;
+            this.userPage.TotalPages = totalPages;
+            this.dgvDataMigration.DataSource = dataList;
+        }
+    }
+
+    private void dgvDataMigration_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
+    {
+        Rectangle rectangle = new Rectangle(e.RowBounds.Location.X,
+        e.RowBounds.Location.Y,
+        dgvDataMigration.RowHeadersWidth - 4,
+        e.RowBounds.Height);
+        TextRenderer.DrawText(e.Graphics, (e.RowIndex + rowIndex).ToString(),
+        dgvDataMigration.RowHeadersDefaultCellStyle.Font,
+        rectangle,
+        dgvDataMigration.RowHeadersDefaultCellStyle.ForeColor,
+        TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
+    }
+
+    private void dgvDataMigration_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+        {
+            DataGridViewColumn clickedColumn = dgvDataMigration.Columns[e.ColumnIndex];
+            string columnName = clickedColumn.Name;
+            if (columnName == "errMessage" || columnName == "Sql")
+            {
+                // 获取双击的单元格的值  
+                string cellValue = dgvDataMigration.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ObjToString();
+                if (cellValue.IsNotEmptyOrNull())
+                {
+                    string headerText = dgvDataMigration.Columns[columnName].HeaderText;
+                    // 弹出消息框显示详细内容
+                    ShowCustomMessageBox($"{headerText}详细内容", cellValue);
+                }
+            }
+        }
+    }
+
+    public static void ShowCustomMessageBox(string title, string message)
+    {
+        ScrollableMessageBox mb = new ScrollableMessageBox(title, message);
+        mb.Show();
+    }
+}
+
+public class DataMigrationDto
+{
+    public string TableName { get; set; }
+    public string TableDescription { get; set; }
+    /// <summary>
+    /// 是否同步结构
+    /// </summary>
+    public string? IsStructure { get; set; }
+    /// <summary>
+    /// 是否同步数据
+    /// </summary>
+    public string? IsData { get; set; }
+    public long DataCount { get; set; }
+
+    /// <summary>
+    /// 结构同步状态
+    /// </summary>
+    public string? StructureStatus { get; set; }
+    /// <summary>
+    /// 数据同步状态
+    /// </summary>
+    public string? DataStatus { get; set; }
+    public string ErrMessage { get; set; }
+    public string Sql { get; set; }
+    public DateTime CreateTime { get; set; }
 }

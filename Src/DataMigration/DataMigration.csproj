@@ -9,12 +9,12 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604;CS8600</NoWarn>
+		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604;CS8600;CS8618</NoWarn>
 		<WarningLevel>2</WarningLevel>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604;CS8600</NoWarn>
+		<NoWarn>1701;1702;1591;CS8622;CS8602;CS8604;CS8600;CS8618</NoWarn>
 		<WarningLevel>2</WarningLevel>
 	</PropertyGroup>
 
@@ -23,7 +23,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="SqlSugarCore" Version="5.1.4.138-preview02" />
+		<PackageReference Include="SqlSugarCore" Version="5.1.4.142" />
 	</ItemGroup>
 
 </Project>
