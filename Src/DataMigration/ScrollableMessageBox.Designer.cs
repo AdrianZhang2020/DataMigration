@@ -35,7 +35,7 @@
             AutoScaleDimensions = new SizeF(7F, 17F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
-            FormBorderStyle = FormBorderStyle.FixedSingle;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             Name = "ScrollableMessageBox";
             Text = "ScrollableMessageBox";

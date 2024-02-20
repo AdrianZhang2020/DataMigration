@@ -24,6 +24,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="SqlSugarCore" Version="5.1.4.142" />
+		<PackageReference Include="SunnyUI" Version="3.6.3" />
 	</ItemGroup>
 
 </Project>
