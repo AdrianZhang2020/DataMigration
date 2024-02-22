@@ -47,6 +47,20 @@ public partial class DataMigration : Form
         this.cmbToDbType.DataSource = Enum.GetValues(typeof(SqlSugar.DbType));
         this.cmbSourceDbType.SelectedIndex = -1;
         this.cmbToDbType.SelectedIndex = -1;
+        var sourceDbType = ConfigurationManager.AppSettings["sourceDbType"];
+        var toDbType = ConfigurationManager.AppSettings["toDbType"];
+        if (sourceDbType.IsNotEmptyOrNull())
+        {
+            int sourceDbTypeIndex = this.cmbSourceDbType.FindStringExact(sourceDbType);
+            if (sourceDbTypeIndex != -1)
+                this.cmbSourceDbType.SelectedIndex = sourceDbTypeIndex;
+        }
+        if (toDbType.IsNotEmptyOrNull())
+        {
+            int toDbTypeIndex = this.cmbToDbType.FindStringExact(toDbType);
+            if (toDbTypeIndex != -1)
+                this.cmbToDbType.SelectedIndex = toDbTypeIndex;
+        }
         this.rdoData.Checked = true;
     }
 
@@ -102,8 +116,12 @@ public partial class DataMigration : Form
         var connectionStrings = config.ConnectionStrings.ConnectionStrings;
         connectionStrings["sourceConnStr"].ConnectionString = sourceConnStr;
         connectionStrings["toConnStr"].ConnectionString = toConnStr;
+        config.AppSettings.Settings["sourceDbType"].Value = this.cmbSourceDbType.SelectedItem.ObjToString();
+        config.AppSettings.Settings["toDbType"].Value = this.cmbToDbType.SelectedItem.ObjToString();
+        config.AppSettings.SectionInformation.ForceSave = true;
         config.Save(ConfigurationSaveMode.Modified);
         ConfigurationManager.RefreshSection("connectionStrings");
+        ConfigurationManager.RefreshSection("appSettings");
         try
         {
             this.uiPage.DataSource = null;
