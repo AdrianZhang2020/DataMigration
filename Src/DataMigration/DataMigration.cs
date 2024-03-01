@@ -8,7 +8,11 @@ public partial class DataMigration : Form
 {
     private static List<DataMigrationDto> gridList;
     private static DataMigrationDto gridModel;
-    private static string commonColumns = "";
+    private static Type tableType;
+    private static bool isIdentity = false;
+    private static SqlSugar.DbType toDbType;
+    private static List<SelectModel> selector;
+    private static string selectTableName = "";
     private const string textTableNames = "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表";
     public DataMigration()
     {
@@ -148,12 +152,13 @@ public partial class DataMigration : Form
             {
                 db.Aop.OnLogExecuting = (sql, pars) =>
                 {
-                    if (commonColumns.IsNotEmptyOrNull() && sql.ToLower().Contains($"select {commonColumns}"))
+                    if (selectTableName.IsNotEmptyOrNull() && sql.ToLower().Contains($"from {selectTableName}"))
                     {
                         // 打开日志文件，将日志写入文件末尾
                         using (StreamWriter writer = File.AppendText(sourceDblogFilePath))
                         {
                             writer.WriteLine("sql：" + sql);
+                            writer.WriteLine("pars：" + pars);
                         }
                     }
                 };
@@ -171,6 +176,7 @@ public partial class DataMigration : Form
             if (Enum.TryParse(this.cmbToDbType.SelectedItem.ToString(), out SqlSugar.DbType to))
             {
                 toConfig.DbType = to;
+                toDbType = to;
             }
             else
                 MessageBox.Show("操作失败，数据库类型异常", "迁移异常", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -185,6 +191,7 @@ public partial class DataMigration : Form
                         using (StreamWriter writer = File.AppendText(toDbLogFilePath))
                         {
                             writer.WriteLine("sql：" + sql);
+                            writer.WriteLine("pars：" + pars);
                         }
                     }
                 };
@@ -244,10 +251,11 @@ public partial class DataMigration : Form
                 gridModel.StructureStatus = gridModel.StructureStatus.IsNullOrEmpty() ? "-" : gridModel.StructureStatus;
                 gridModel.DataStatus = gridModel.DataStatus.IsNullOrEmpty() ? "-" : gridModel.DataStatus;
                 gridList.Add(gridModel);
+
                 ShowDatas(this.uiPage.ActivePage == 0 ? 1 : this.uiPage.ActivePage);
             }
             if (msg.IsNotEmptyOrNull())
-                MessageBox.Show("迁移失败：" + msg, "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("迁移失败", "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
             else
                 MessageBox.Show("迁移成功", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.btnDataMigration.Enabled = true;
@@ -262,7 +270,7 @@ public partial class DataMigration : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show("迁移失败：" + ex.Message, "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("迁移异常：" + ex.Message, "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
             this.btnDataMigration.Enabled = true;
             this.cmbSourceDbType.Enabled = true;
             this.cmbToDbType.Enabled = true;
@@ -277,21 +285,47 @@ public partial class DataMigration : Form
 
     private static void MigrationData(SqlSugarClient sourceDb, SqlSugarClient toDb, DbTableInfo? table, DataMigrationDto gridModel, List<DbColumnInfo> sourceColumns)
     {
-        if (toDb.DbMaintenance.IsAnyTable(table.Name, false))//判断目标数据库当前表是否存在
+        var toTableName = table.Name;
+        if (toDb.DbMaintenance.IsAnyTable(toTableName, false))//判断目标数据库当前表是否存在
         {
             try
             {
-                var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询目标数据库当前表所有字段
-                commonColumns = string.Join(",", sourceColumns
-                    .Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToList());//取出两边表中都存在的字段并以逗号拼接
+                var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(toTableName, false);//查询目标数据库当前表所有字段
+                var commonColumnList = sourceColumns.Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToArray();
+                selectTableName = table.Name.ToLower();
                 var dataCount = sourceDb.Queryable<DataTable>().AS(table.Name).Count();
                 gridModel.DataCount = dataCount;
                 var pageSize = 100000;
                 var pageCount = Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
                 for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++)
                 {
-                    var data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(commonColumns).ToDataTablePage(pageIndex, pageSize);
-                    toDb.CopyNew().Fastest<DataTable>().AS(table.Name).BulkCopy(data);//将数据分页批量插入到目标表中
+                    var data = new DataTable();
+                    if (selector == null || selector.Count == 0)
+                    {
+                        foreach (var item in commonColumnList)
+                        {
+                            selector.Add(new SelectModel()
+                            {
+                                FieldName = item
+                            });
+                        }
+                    }
+                    data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(selector).ToDataTablePage(pageIndex, pageSize);
+                    if (data != null && data.Rows.Count > 0)
+                    {
+                        try
+                        {
+                            if (isIdentity)
+                                toDb.CopyNew().Fastest<DataTable>().AS(toTableName).OffIdentity().BulkCopy(data);//将数据分页批量插入到目标表中
+                            else
+                                toDb.CopyNew().Fastest<DataTable>().AS(toTableName).BulkCopy(data);//将数据分页批量插入到目标表中
+                        }
+                        catch (Exception)
+                        {
+                            List<Dictionary<string, object>> dc = toDb.CopyNew().Utilities.DataTableToDictionaryList(data);
+                            toDb.CopyNew().Insertable(dc).AS(toTableName).InsertColumns(commonColumnList).ExecuteCommand();
+                        }
+                    }
                 }
                 gridModel.DataStatus = "成功";
             }
@@ -307,9 +341,14 @@ public partial class DataMigration : Form
     {
         try
         {
+            isIdentity = false;
+            selector = new List<SelectModel>();
+
             var sourceDtColumns = (sourceDb.Queryable<DataTable>().AS(table.Name).Select("*").Where(w => false).ToDataTable()).Columns;
 
-            var typeBilder = toDb.DynamicBuilder().CreateClass(table.Name, new SugarTable() { TableDescription = table.Description });
+            var tableName = table.Name;
+
+            var typeBilder = toDb.DynamicBuilder().CreateClass(tableName, new SugarTable() { TableDescription = table.Description });
 
             foreach (var item in sourceColumns)
             {
@@ -321,31 +360,44 @@ public partial class DataMigration : Form
                     IsNullable = item.IsNullable,
                     ColumnDescription = item.ColumnDescription
                 };
+
                 if (propertyType != typeof(DateTime) && !item.DefaultValue.ObjToString().ToLower().Contains("newid"))
                 {
                     column.DecimalDigits = item.DecimalDigits;
                     column.DefaultValue = item.DefaultValue.ObjToString().Replace("(", "").Replace(")", "").Replace("'", "");
                 }
+
                 if ((propertyType == typeof(string) && item.Length < 4000) || propertyType == typeof(decimal))
                 {
+                    if (toDbType == SqlSugar.DbType.Dm && item.Length != 36 && propertyType == typeof(string))
+                        item.Length = item.Length * 2;
+
                     column.Length = item.Length;
                 }
+
                 if (item.Length >= 4000 || item.Length == -1)
                 {
                     column.ColumnDataType = StaticConfig.CodeFirst_BigString;
                 }
+                if (item.IsIdentity)
+                    isIdentity = item.IsIdentity;
+
+                selector.Add(new SelectModel()
+                {
+                    FieldName = item.DbColumnName
+                });
 
                 typeBilder.CreateProperty(item.DbColumnName, propertyType, column);
             }
             //创建类
-            var type = typeBilder.BuilderType();
+            tableType = typeBilder.BuilderType();
 
             var toDbNew = toDb.CopyNew();
-            if (toDbNew.DbMaintenance.IsAnyTable(table.Name, false))
-                toDbNew.DbMaintenance.DropTable(table.Name);
+            if (toDbNew.DbMaintenance.IsAnyTable(tableName, false))
+                toDbNew.DbMaintenance.DropTable(tableName);
 
             //创建表
-            toDbNew.CodeFirst.InitTables(type);
+            toDbNew.CodeFirst.InitTables(tableType);
 
             gridModel.StructureStatus = "成功";
         }
@@ -416,11 +468,6 @@ public partial class DataMigration : Form
         }
     }
 
-    /// <summary>
-    /// 弹窗
-    /// </summary>
-    /// <param name="title"></param>
-    /// <param name="message"></param>
     public static void ShowCustomMessageBox(string title, string message)
     {
         ScrollableMessageBox mb = new ScrollableMessageBox(title, message);
