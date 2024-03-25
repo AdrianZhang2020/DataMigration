@@ -1,5 +1,6 @@
 global using DataMigration.Dtos;
 global using SqlSugar;
+global using Sunny.UI;
 global using System.Configuration;
 global using System.Data;
 namespace DataMigration;
@@ -14,6 +15,7 @@ public partial class DataMigration : Form
     private static List<SelectModel> selector;
     private static string selectTableName = "";
     private const string textTableNames = "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表";
+    private static bool isDataChecked;
     public DataMigration()
     {
         InitializeComponent();
@@ -47,8 +49,8 @@ public partial class DataMigration : Form
     {
         this.txtSourceConn.Text = ConfigurationManager.ConnectionStrings["sourceConnStr"].ConnectionString;
         this.txtToConn.Text = ConfigurationManager.ConnectionStrings["toConnStr"].ConnectionString;
-        this.cmbSourceDbType.DataSource = Enum.GetValues(typeof(SqlSugar.DbType));
-        this.cmbToDbType.DataSource = Enum.GetValues(typeof(SqlSugar.DbType));
+        this.cmbSourceDbType.DataSource = Enum.GetValues<SqlSugar.DbType>();//typeof(SqlSugar.DbType)
+        this.cmbToDbType.DataSource = Enum.GetValues<SqlSugar.DbType>();//typeof(SqlSugar.DbType)
         this.cmbSourceDbType.SelectedIndex = -1;
         this.cmbToDbType.SelectedIndex = -1;
         var sourceDbType = ConfigurationManager.AppSettings["sourceDbType"];
@@ -65,7 +67,7 @@ public partial class DataMigration : Form
             if (toDbTypeIndex != -1)
                 this.cmbToDbType.SelectedIndex = toDbTypeIndex;
         }
-        this.rdoData.Checked = true;
+        this.rdoAll.Checked = true;
     }
 
     private async void btnDataMigration_Click(object sender, EventArgs e)
@@ -92,7 +94,7 @@ public partial class DataMigration : Form
         }
         //将窗体所有控件设为不可用
         var isStructure = this.rdoStructure.Checked;
-        var isData = this.rdoData.Checked;
+        isDataChecked = this.rdoData.Checked;
         var isAll = this.rdoAll.Checked;
         this.btnDataMigration.Enabled = false;
         this.cmbSourceDbType.Enabled = false;
@@ -184,9 +186,9 @@ public partial class DataMigration : Form
             {
                 db.Aop.OnLogExecuting = (sql, pars) =>
                 {
-                    if (!sql.ToLower().Contains("select"))
+                    if (sql.ToLower().Contains("insert") || sql.ToLower().Contains("update") || sql.ToLower().Contains("bulkcopy"))
                     {
-                        gridModel.Sql += sql + ";\r\n";
+                        gridModel.Sql += (sql + ";\r\n").ObjToString();
                         // 打开日志文件，将日志写入文件末尾
                         using (StreamWriter writer = File.AppendText(toDbLogFilePath))
                         {
@@ -205,7 +207,8 @@ public partial class DataMigration : Form
             if (tableName.IsNotEmptyOrNull())
                 tableList = tableList.Where(w => w.Name.ToLower() == tableName.ToLower()).ToList();
             tableList = tableList.OrderBy(o => o.Name).ToList();
-
+            var ignoreTables = new string[] { "app_pushday", "shouji_temp" };
+            tableList = tableList?.Where(w => !ignoreTables.Contains(w.Name.ToLower()) && !w.Name.ToLower().Contains("requestaccesslog")).ToList();
             foreach (var table in tableList)
             {
                 gridModel = new DataMigrationDto()
@@ -220,7 +223,7 @@ public partial class DataMigration : Form
 
                 if (isStructure || isAll)
                     gridModel.IsStructure = "是";
-                if (isData || isAll)
+                if (isDataChecked || isAll)
                     gridModel.IsData = "是";
 
                 try
@@ -232,7 +235,7 @@ public partial class DataMigration : Form
                         await Task.Run(() => StructuralMigration(sourceDb, toDb, table, gridModel, sourceColumns));
                     }
 
-                    if (isData || isAll)
+                    if (isDataChecked || isAll)
                     {
                         await Task.Run(() => MigrationData(sourceDb, toDb, table, gridModel, sourceColumns));
                     }
@@ -297,6 +300,18 @@ public partial class DataMigration : Form
                 gridModel.DataCount = dataCount;
                 var pageSize = 100000;
                 var pageCount = Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
+
+                if (isDataChecked)
+                {
+                    selector = new List<SelectModel>();
+                    isIdentity = false;
+                    var comlist = toDb.DbMaintenance.GetIsIdentities(toTableName);
+                    if (comlist != null && comlist.Count > 0)
+                    {
+                        isIdentity = true;
+                    }
+                }
+
                 for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++)
                 {
                     var data = new DataTable();
