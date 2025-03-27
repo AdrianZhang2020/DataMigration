@@ -23,6 +23,6 @@ public class DataMigrationDto
     /// </summary>
     public string? DataStatus { get; set; }
     public string ErrMessage { get; set; }
-    public string Sql { get; set; }
+    //public string Sql { get; set; }
     public DateTime CreateTime { get; set; }
 }

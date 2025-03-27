@@ -3,17 +3,15 @@ global using SqlSugar;
 global using Sunny.UI;
 global using System.Configuration;
 global using System.Data;
+using System.Collections.Concurrent;
 namespace DataMigration;
 
 public partial class DataMigration : Form
 {
+    private static readonly object _lockObject = new object();
     private static List<DataMigrationDto> gridList;
-    private static DataMigrationDto gridModel;
     private static Type tableType;
-    private static bool isIdentity = false;
     private static SqlSugar.DbType toDbType;
-    private static List<SelectModel> selector;
-    private static string selectTableName = "";
     private const string textTableNames = "需要同步的表名，多个用英文逗号隔开，为空默认同步所有表";
     private static bool isDataChecked;
     public DataMigration()
@@ -156,12 +154,18 @@ public partial class DataMigration : Form
             {
                 db.Aop.OnLogExecuting = (sql, pars) =>
                 {
-                    if (selectTableName.IsNotEmptyOrNull() && sql.ToLower().Contains($"from {selectTableName}"))
+
+                    if (sql.ToLower().Contains("rowindex"))
                     {
-                        // 打开日志文件，将日志写入文件末尾
-                        using StreamWriter writer = File.AppendText(sourceDblogFilePath);
-                        writer.WriteLine("sql：" + sql);
-                        writer.WriteLine("pars：" + pars);
+                        lock (_lockObject)
+                        {
+                            // 打开日志文件，将日志写入文件末尾
+                            using (StreamWriter writer = File.AppendText(sourceDblogFilePath))
+                            {
+                                writer.WriteLine("sql：" + sql);
+                                writer.WriteLine("pars：" + pars);
+                            }
+                        }
                     }
                 };
             });
@@ -186,20 +190,26 @@ public partial class DataMigration : Form
                 MessageBox.Show("操作失败，数据库类型异常", "迁移异常", MessageBoxButtons.OK, MessageBoxIcon.Error);
             SqlSugarClient toDb = new(toConfig, db =>
             {
+                db.Ado.CommandTimeOut = 1800;
                 db.Aop.OnLogExecuting = (sql, pars) =>
                 {
                     if (sql.ToLower().Contains("insert") || sql.ToLower().Contains("update") || sql.ToLower().Contains("bulkcopy") || sql.ToLower().Contains("create") || sql.ToLower().Contains("alter"))
                     {
-                        gridModel.Sql += (sql + ";\r\n").ObjToString();
-                        // 打开日志文件，将日志写入文件末尾
-                        using StreamWriter writer = File.AppendText(toDbLogFilePath);
-                        writer.WriteLine("sql：" + sql);
-                        writer.WriteLine("pars：" + pars);
+                        //gridModel.Sql += (sql + ";\r\n").ObjToString();
+                        lock (_lockObject)
+                        {
+                            // 打开日志文件，将日志写入文件末尾
+                            using (StreamWriter writer = File.AppendText(toDbLogFilePath))
+                            {
+                                writer.WriteLine("sql：" + sql);
+                                writer.WriteLine("pars：" + pars);
+                            }
+                        }
                     }
                 };
             });
 
-            gridList = [];
+            gridList = new List<DataMigrationDto>();
 
             var tableList = sourceDb.DbMaintenance.GetTableInfoList(false);//查询源数据库所有表
             if (tables != null && tables.Length > 0)
@@ -207,16 +217,22 @@ public partial class DataMigration : Form
             if (tableName.IsNotEmptyOrNull())
                 tableList = tableList.Where(w => w.Name.ToLower() == tableName.ToLower()).ToList();
             tableList = tableList.OrderBy(o => o.Name).ToList();
-            var ignoreTables = new string[] { "app_pushday", "shouji_temp" };
-            tableList = tableList?.Where(w => !ignoreTables.Contains(w.Name.ToLower()) && !w.Name.ToLower().Contains("requestaccesslog")).ToList();
-            foreach (var table in tableList)
+            ParallelOptions options = new ParallelOptions
             {
-                gridModel = new DataMigrationDto()
+                MaxDegreeOfParallelism = Environment.ProcessorCount * 10
+            };
+            await Parallel.ForEachAsync(tableList, options, async (table, cancellationToken) =>
+            {
+                var tableName = table.Name.ToUpper();
+                var gridModel = new DataMigrationDto()
                 {
-                    TableName = table.Name,
+                    TableName = tableName,
                     TableDescription = table.Description.ObjToString(),
                     IsStructure = "否",
                     IsData = "否",
+                    StructureStatus = "",
+                    DataStatus = "",
+                    //Sql = "",
                     ErrMessage = "",
                     CreateTime = DateTime.Now
                 };
@@ -225,38 +241,74 @@ public partial class DataMigration : Form
                     gridModel.IsStructure = "是";
                 if (isDataChecked || isAll)
                     gridModel.IsData = "是";
-
                 try
                 {
-                    var sourceColumns = sourceDb.DbMaintenance.GetColumnInfosByTableName(table.Name, false);//查询源数据库当前表所有字段                    
+                    var sourceDbCopy = sourceDb.CopyNew();
+                    var toDbCopy = toDb.CopyNew();
+
+                    var sourceColumns = sourceDbCopy.DbMaintenance.GetColumnInfosByTableName(tableName, false);//查询源数据库当前表所有字段
 
                     if (isStructure || isAll)
                     {
-                        await Task.Run(() => StructuralMigration(sourceDb, toDb, table, gridModel, sourceColumns));
+                        StructuralMigration(sourceDbCopy, toDbCopy, table, gridModel, sourceColumns);
                     }
 
                     if (isDataChecked || isAll)
                     {
-                        await Task.Run(() => MigrationData(sourceDb, toDb, table, gridModel, sourceColumns));
+                        if (tableName == "SYS_CONFIG")
+                        {
+                            if (!toDbCopy.DbMaintenance.IsAnyTable(tableName + "_WHH", false))
+                                return;
+                        }
+                        else
+                        {
+                            if (!toDbCopy.DbMaintenance.IsAnyTable(tableName, false))
+                            {
+                                lock (_lockObject)
+                                {
+                                    using (StreamWriter writer = File.AppendText(toDbLogFilePath))
+                                    {
+                                        writer.WriteLine($"{tableName}：不存在");
+                                    }
+                                }
+                                return;
+                            }
+                        }
+                        await MigrationData(sourceDbCopy, toDbCopy, table, gridModel, sourceColumns);
                     }
                 }
                 catch (Exception ex)
                 {
                     gridModel.ErrMessage = ex.Message;
-                    // 打开日志文件，将日志写入文件末尾
-                    using (StreamWriter writer = File.AppendText(errorLogFilePath))
+                    lock (_lockObject)
                     {
-                        writer.WriteLine("tableName：" + table.Name);
-                        writer.WriteLine("错误信息：" + ex.Message);
+                        // 打开日志文件，将日志写入文件末尾
+                        using (StreamWriter writer = File.AppendText(errorLogFilePath))
+                        {
+                            writer.WriteLine("时间：" + DateTime.Now);
+                            writer.WriteLine("tableName：" + tableName);
+                            writer.WriteLine("错误信息：" + ex.Message);
+                        }
                     }
-                    msg += "tableName：" + table.Name + "，" + "错误信息：" + ex.Message + "\r\n";
+                    lock (_lockObject)
+                    {
+                        msg += $"tableName：{tableName}，错误信息：{ex.Message}\r\n";
+                    }
                 }
+
                 gridModel.StructureStatus = gridModel.StructureStatus.IsNullOrEmpty() ? "-" : gridModel.StructureStatus;
                 gridModel.DataStatus = gridModel.DataStatus.IsNullOrEmpty() ? "-" : gridModel.DataStatus;
-                gridList.Add(gridModel);
+                lock (_lockObject)
+                {
+                    gridList.Add(gridModel);
+                }
 
-                ShowDatas(this.uiPage.ActivePage == 0 ? 1 : this.uiPage.ActivePage);
-            }
+                this.Invoke((MethodInvoker)delegate
+                {
+                    ShowDatas(this.uiPage.ActivePage == 0 ? 1 : this.uiPage.ActivePage);
+                });
+            });
+
             if (msg.IsNotEmptyOrNull())
                 MessageBox.Show("迁移失败", "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
             else
@@ -286,27 +338,28 @@ public partial class DataMigration : Form
         }
     }
 
-    private static void MigrationData(SqlSugarClient sourceDb, SqlSugarClient toDb, DbTableInfo? table, DataMigrationDto gridModel, List<DbColumnInfo> sourceColumns)
+    private static async Task MigrationData(SqlSugarClient sourceDb, SqlSugarClient toDb, DbTableInfo? table, DataMigrationDto gridModel, List<DbColumnInfo> sourceColumns)
     {
-        var toTableName = table.Name;
+        var sourceTableName = table.Name.ToUpper();
+        var toTableName = sourceTableName == "SYS_CONFIG" ? "SYS_CONFIG_WHH" : sourceTableName;
         if (toDb.DbMaintenance.IsAnyTable(toTableName, false))//判断目标数据库当前表是否存在
         {
             try
             {
+                var order = "";
                 var toColumns = toDb.DbMaintenance.GetColumnInfosByTableName(toTableName, false);//查询目标数据库当前表所有字段
                 var commonColumnList = sourceColumns.Where(c1 => toColumns.Any(c2 => c2.DbColumnName.ToLower() == c1.DbColumnName.ToLower())).Select(s => s.DbColumnName).ToArray();
-                selectTableName = table.Name.ToLower();
-                var dataCount = sourceDb.Queryable<DataTable>().AS(table.Name).Count();
+                var dataCount = await sourceDb.Queryable<DataTable>().AS(sourceTableName).CountAsync();
                 gridModel.DataCount = dataCount;
                 if (dataCount > 0)
                 {
                     var pageSize = 100000;
-                    var pageCount = Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
+                    var pageCount = (int)Math.Ceiling(dataCount.ObjToDecimal() / pageSize);
 
+                    var selector = new List<SelectModel>();
+                    var isIdentity = false;
                     if (isDataChecked)
                     {
-                        selector = [];
-                        isIdentity = false;
                         var comlist = toDb.DbMaintenance.GetIsIdentities(toTableName);
                         if (comlist != null && comlist.Count > 0)
                         {
@@ -314,37 +367,34 @@ public partial class DataMigration : Form
                         }
                     }
 
+                    if (selector == null || selector.Count == 0)
+                    {
+                        foreach (var item in commonColumnList)
+                        {
+                            selector.Add(new SelectModel()
+                            {
+                                FieldName = item
+                            });
+                        }
+                    }
+
+                    if (commonColumnList.Contains("create_time"))
+                        order = "create_time asc";
+
                     for (int pageIndex = 1; pageIndex <= pageCount; pageIndex++)
                     {
                         var data = new DataTable();
-                        if (selector == null || selector.Count == 0)
-                        {
-                            foreach (var item in commonColumnList)
-                            {
-                                selector.Add(new SelectModel()
-                                {
-                                    FieldName = item
-                                });
-                            }
-                        }
-                        data = sourceDb.CopyNew().Queryable<DataTable>().AS(table.Name).Select(selector).ToDataTablePage(pageIndex, pageSize);
+                        data = await sourceDb.Queryable<DataTable>().AS(sourceTableName).OrderByIF(order.IsNotEmptyOrNull(), order).Select(selector).ToDataTablePageAsync(pageIndex, pageSize);
+                        data = DataHelper.DataTableToUpper(data);
                         if (data != null && data.Rows.Count > 0)
                         {
-                            try
-                            {
-                                if (isIdentity)
-                                    toDb.CopyNew().Fastest<DataTable>().AS(toTableName).OffIdentity().BulkCopy(data);//将数据分页批量插入到目标表中
-                                else
-                                    toDb.CopyNew().Fastest<DataTable>().AS(toTableName).BulkCopy(data);//将数据分页批量插入到目标表中
-                            }
-                            catch (Exception)
-                            {
-                                List<Dictionary<string, object>> dc = toDb.CopyNew().Utilities.DataTableToDictionaryList(data);
-                                toDb.CopyNew().Insertable(dc).AS(toTableName).InsertColumns(commonColumnList).ExecuteCommand();
-                            }
+                            var fastInserter = isIdentity ?
+                                    toDb.Fastest<DataTable>().AS(toTableName).OffIdentity() :
+                                    toDb.Fastest<DataTable>().AS(toTableName);
+                            await fastInserter.BulkCopyAsync(data);
                         }
                     }
-                }                    
+                }
                 gridModel.DataStatus = "成功";
             }
             catch (Exception ex)
@@ -359,14 +409,12 @@ public partial class DataMigration : Form
     {
         try
         {
-            isIdentity = false;
-            selector = [];
+            var sourceTableName = table.Name.ToUpper();
+            var toTableName = sourceTableName == "SYS_CONFIG" ? "SYS_CONFIG_WHH" : sourceTableName;
 
-            var sourceDtColumns = (sourceDb.Queryable<DataTable>().AS(table.Name).Select("*").Where(w => false).ToDataTable()).Columns;
+            var sourceDtColumns = (sourceDb.Queryable<DataTable>().AS(sourceTableName).Select("*").Where(w => false).ToDataTable()).Columns;
 
-            var tableName = table.Name;
-
-            var typeBilder = toDb.DynamicBuilder().CreateClass(tableName, new SugarTable() { TableDescription = table.Description });
+            var typeBilder = toDb.DynamicBuilder().CreateClass(toTableName, new SugarTable() { TableDescription = table.Description });
 
             foreach (var item in sourceColumns)
             {
@@ -381,41 +429,41 @@ public partial class DataMigration : Form
 
                 if (propertyType != typeof(DateTime) && !item.DefaultValue.ObjToString().ToLower().Contains("newid"))
                 {
-                    column.DecimalDigits = item.DecimalDigits;
+                    column.DecimalDigits = item.DecimalDigits == 127 ? 0 : item.DecimalDigits;
                     column.DefaultValue = item.DefaultValue.ObjToString().Replace("(", "").Replace(")", "").Replace("'", "");
                 }
 
-                if ((propertyType == typeof(string) && item.Length < 4000) || propertyType == typeof(decimal))
+                if (propertyType == typeof(string) || propertyType == typeof(decimal))
                 {
-                    if (toDbType == SqlSugar.DbType.Dm && item.Length != 36 && propertyType == typeof(string))
+                    if (toDbType == SqlSugar.DbType.Dm && item.Length != 36 && item.Length != -1 && propertyType == typeof(string))
                         item.Length = item.Length * 2;
 
-                    column.Length = item.Length;
+                    if (item.Length < 4000 && item.Length > 0)
+                        column.Length = item.Length;
+                    else if (item.Length >= 4000 || item.Length <= -1)
+                        column.ColumnDataType = StaticConfig.CodeFirst_BigString;
                 }
-
-                if (item.Length >= 4000 || item.Length == -1)
-                {
-                    column.ColumnDataType = StaticConfig.CodeFirst_BigString;
-                }
-                if (item.IsIdentity)
-                    isIdentity = item.IsIdentity;
-
-                selector.Add(new SelectModel()
-                {
-                    FieldName = item.DbColumnName
-                });
-
                 typeBilder.CreateProperty(item.DbColumnName, propertyType, column);
             }
             //创建类
             tableType = typeBilder.BuilderType();
 
-            var toDbNew = toDb.CopyNew();
-            if (toDbNew.DbMaintenance.IsAnyTable(tableName, false))
-                toDbNew.DbMaintenance.DropTable(tableName);
+            if (toDb.DbMaintenance.IsAnyTable(toTableName, false))
+                toDb.DbMaintenance.DropTable(toTableName);
 
             //创建表
-            toDbNew.CodeFirst.InitTables(tableType);
+            toDb.CodeFirst.InitTables(tableType);
+
+            //创建索引
+            var indexService = new IndexService(sourceDb);
+            var indexInfoList = indexService.GetIndexes(sourceTableName.ToLower());
+            if (indexInfoList != null && indexInfoList.Count > 0)
+            {
+                foreach (var item in indexInfoList)
+                {
+                    toDb.DbMaintenance.CreateIndex(toTableName, item.Columns, item.IndexName, item.IsUnique);
+                }
+            }
 
             gridModel.StructureStatus = "成功";
         }

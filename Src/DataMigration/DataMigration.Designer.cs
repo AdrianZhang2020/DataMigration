@@ -36,22 +36,24 @@
             DataGridViewCellStyle dataGridViewCellStyle6 = new DataGridViewCellStyle();
             DataGridViewCellStyle dataGridViewCellStyle3 = new DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DataMigration));
-            label1 = new Sunny.UI.UILabel();
-            label2 = new Sunny.UI.UILabel();
-            txtSourceConn = new Sunny.UI.UITextBox();
-            txtToConn = new Sunny.UI.UITextBox();
-            label3 = new Sunny.UI.UILabel();
-            label5 = new Sunny.UI.UILabel();
-            cmbSourceDbType = new Sunny.UI.UIComboBox();
-            cmbToDbType = new Sunny.UI.UIComboBox();
-            btnDataMigration = new Sunny.UI.UIButton();
-            txtTableNames = new Sunny.UI.UITextBox();
-            label4 = new Sunny.UI.UILabel();
-            groupBox1 = new Sunny.UI.UIGroupBox();
-            rdoAll = new Sunny.UI.UIRadioButton();
-            rdoData = new Sunny.UI.UIRadioButton();
-            rdoStructure = new Sunny.UI.UIRadioButton();
-            dgvDataMigration = new Sunny.UI.UIDataGridView();
+            label1 = new UILabel();
+            label2 = new UILabel();
+            txtSourceConn = new UITextBox();
+            txtToConn = new UITextBox();
+            label3 = new UILabel();
+            label5 = new UILabel();
+            cmbSourceDbType = new UIComboBox();
+            cmbToDbType = new UIComboBox();
+            btnDataMigration = new UIButton();
+            txtTableNames = new UITextBox();
+            label4 = new UILabel();
+            groupBox1 = new UIGroupBox();
+            rdoAll = new UIRadioButton();
+            rdoData = new UIRadioButton();
+            rdoStructure = new UIRadioButton();
+            dgvDataMigration = new UIDataGridView();
+            dataMigrationDtoBindingSource = new BindingSource(components);
+            uiPage = new UIPagination();
             tableName = new DataGridViewTextBoxColumn();
             tableDescription = new DataGridViewTextBoxColumn();
             isStructure = new DataGridViewTextBoxColumn();
@@ -60,11 +62,8 @@
             structureStatus = new DataGridViewTextBoxColumn();
             dataStatus = new DataGridViewTextBoxColumn();
             errMessage = new DataGridViewTextBoxColumn();
-            sql = new DataGridViewTextBoxColumn();
             createTime = new DataGridViewTextBoxColumn();
             btnRetry = new DataGridViewButtonColumn();
-            dataMigrationDtoBindingSource = new BindingSource(components);
-            uiPage = new Sunny.UI.UIPagination();
             groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvDataMigration).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dataMigrationDtoBindingSource).BeginInit();
@@ -73,7 +72,7 @@
             // label1
             // 
             label1.AutoSize = true;
-            label1.Font = new Font("宋体", 9F);
+            label1.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             label1.ForeColor = Color.FromArgb(48, 48, 48);
             label1.Location = new Point(14, 37);
             label1.Name = "label1";
@@ -85,7 +84,7 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            label2.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             label2.ForeColor = Color.FromArgb(48, 48, 48);
             label2.Location = new Point(2, 117);
             label2.Name = "label2";
@@ -96,7 +95,7 @@
             // 
             // txtSourceConn
             // 
-            txtSourceConn.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            txtSourceConn.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point);
             txtSourceConn.Location = new Point(104, 12);
             txtSourceConn.Margin = new Padding(4, 5, 4, 5);
             txtSourceConn.MinimumSize = new Size(1, 16);
@@ -112,7 +111,7 @@
             // 
             // txtToConn
             // 
-            txtToConn.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            txtToConn.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point);
             txtToConn.Location = new Point(104, 93);
             txtToConn.Margin = new Padding(4, 5, 4, 5);
             txtToConn.MinimumSize = new Size(1, 16);
@@ -129,7 +128,7 @@
             // label3
             // 
             label3.AutoSize = true;
-            label3.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            label3.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             label3.ForeColor = Color.FromArgb(48, 48, 48);
             label3.Location = new Point(501, 40);
             label3.Name = "label3";
@@ -141,7 +140,7 @@
             // label5
             // 
             label5.AutoSize = true;
-            label5.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            label5.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             label5.ForeColor = Color.FromArgb(48, 48, 48);
             label5.Location = new Point(489, 117);
             label5.Name = "label5";
@@ -153,9 +152,9 @@
             // cmbSourceDbType
             // 
             cmbSourceDbType.DataSource = null;
-            cmbSourceDbType.DropDownStyle = Sunny.UI.UIDropDownStyle.DropDownList;
+            cmbSourceDbType.DropDownStyle = UIDropDownStyle.DropDownList;
             cmbSourceDbType.FillColor = Color.White;
-            cmbSourceDbType.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            cmbSourceDbType.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point);
             cmbSourceDbType.FormattingEnabled = true;
             cmbSourceDbType.ItemHoverColor = Color.FromArgb(155, 200, 255);
             cmbSourceDbType.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
@@ -172,9 +171,9 @@
             // cmbToDbType
             // 
             cmbToDbType.DataSource = null;
-            cmbToDbType.DropDownStyle = Sunny.UI.UIDropDownStyle.DropDownList;
+            cmbToDbType.DropDownStyle = UIDropDownStyle.DropDownList;
             cmbToDbType.FillColor = Color.White;
-            cmbToDbType.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            cmbToDbType.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point);
             cmbToDbType.FormattingEnabled = true;
             cmbToDbType.ItemHoverColor = Color.FromArgb(155, 200, 255);
             cmbToDbType.ItemSelectForeColor = Color.FromArgb(235, 243, 255);
@@ -190,19 +189,19 @@
             // 
             // btnDataMigration
             // 
-            btnDataMigration.Font = new Font("Microsoft YaHei UI", 16F);
+            btnDataMigration.Font = new Font("Microsoft YaHei UI", 16F, FontStyle.Regular, GraphicsUnit.Point);
             btnDataMigration.Location = new Point(257, 525);
             btnDataMigration.MinimumSize = new Size(1, 1);
             btnDataMigration.Name = "btnDataMigration";
             btnDataMigration.Size = new Size(197, 40);
             btnDataMigration.TabIndex = 9;
-            btnDataMigration.Text = "开始数据迁移";
-            btnDataMigration.TipsFont = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            btnDataMigration.Text = "开始迁移";
+            btnDataMigration.TipsFont = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             btnDataMigration.Click += btnDataMigration_Click;
             // 
             // txtTableNames
             // 
-            txtTableNames.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            txtTableNames.Font = new Font("宋体", 10F, FontStyle.Regular, GraphicsUnit.Point);
             txtTableNames.Location = new Point(104, 175);
             txtTableNames.Margin = new Padding(4, 5, 4, 5);
             txtTableNames.MinimumSize = new Size(1, 16);
@@ -219,7 +218,7 @@
             // label4
             // 
             label4.AutoSize = true;
-            label4.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            label4.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             label4.ForeColor = Color.FromArgb(48, 48, 48);
             label4.Location = new Point(62, 200);
             label4.Name = "label4";
@@ -233,7 +232,7 @@
             groupBox1.Controls.Add(rdoAll);
             groupBox1.Controls.Add(rdoData);
             groupBox1.Controls.Add(rdoStructure);
-            groupBox1.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            groupBox1.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             groupBox1.Location = new Point(489, 175);
             groupBox1.Margin = new Padding(4, 5, 4, 5);
             groupBox1.MinimumSize = new Size(1, 1);
@@ -247,7 +246,7 @@
             // 
             // rdoAll
             // 
-            rdoAll.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            rdoAll.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             rdoAll.Location = new Point(123, 33);
             rdoAll.MinimumSize = new Size(1, 1);
             rdoAll.Name = "rdoAll";
@@ -257,7 +256,7 @@
             // 
             // rdoData
             // 
-            rdoData.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            rdoData.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             rdoData.Location = new Point(65, 33);
             rdoData.MinimumSize = new Size(1, 1);
             rdoData.Name = "rdoData";
@@ -267,7 +266,7 @@
             // 
             // rdoStructure
             // 
-            rdoStructure.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            rdoStructure.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             rdoStructure.Location = new Point(7, 33);
             rdoStructure.MinimumSize = new Size(1, 1);
             rdoStructure.Name = "rdoStructure";
@@ -286,7 +285,7 @@
             dgvDataMigration.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             dataGridViewCellStyle2.Alignment = DataGridViewContentAlignment.MiddleCenter;
             dataGridViewCellStyle2.BackColor = Color.FromArgb(80, 160, 255);
-            dataGridViewCellStyle2.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            dataGridViewCellStyle2.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             dataGridViewCellStyle2.ForeColor = Color.White;
             dataGridViewCellStyle2.SelectionBackColor = SystemColors.Highlight;
             dataGridViewCellStyle2.SelectionForeColor = SystemColors.HighlightText;
@@ -294,11 +293,11 @@
             dgvDataMigration.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
             dgvDataMigration.ColumnHeadersHeight = 32;
             dgvDataMigration.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            dgvDataMigration.Columns.AddRange(new DataGridViewColumn[] { tableName, tableDescription, isStructure, isData, dataCount, structureStatus, dataStatus, errMessage, sql, createTime, btnRetry });
+            dgvDataMigration.Columns.AddRange(new DataGridViewColumn[] { tableName, tableDescription, isStructure, isData, dataCount, structureStatus, dataStatus, errMessage, createTime, btnRetry });
             dgvDataMigration.DataSource = dataMigrationDtoBindingSource;
             dataGridViewCellStyle4.Alignment = DataGridViewContentAlignment.MiddleCenter;
             dataGridViewCellStyle4.BackColor = SystemColors.Window;
-            dataGridViewCellStyle4.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            dataGridViewCellStyle4.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             dataGridViewCellStyle4.ForeColor = SystemColors.ControlText;
             dataGridViewCellStyle4.NullValue = "False";
             dataGridViewCellStyle4.SelectionBackColor = SystemColors.Highlight;
@@ -306,14 +305,14 @@
             dataGridViewCellStyle4.WrapMode = DataGridViewTriState.False;
             dgvDataMigration.DefaultCellStyle = dataGridViewCellStyle4;
             dgvDataMigration.EnableHeadersVisualStyles = false;
-            dgvDataMigration.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            dgvDataMigration.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             dgvDataMigration.GridColor = Color.FromArgb(80, 160, 255);
             dgvDataMigration.Location = new Point(6, 251);
             dgvDataMigration.Name = "dgvDataMigration";
             dgvDataMigration.ReadOnly = true;
             dataGridViewCellStyle5.Alignment = DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle5.BackColor = Color.FromArgb(235, 243, 255);
-            dataGridViewCellStyle5.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            dataGridViewCellStyle5.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
             dataGridViewCellStyle5.ForeColor = Color.FromArgb(48, 48, 48);
             dataGridViewCellStyle5.SelectionBackColor = Color.FromArgb(80, 160, 255);
             dataGridViewCellStyle5.SelectionForeColor = Color.White;
@@ -329,6 +328,28 @@
             dgvDataMigration.CellContentClick += dgvDataMigration_CellContentClick;
             dgvDataMigration.CellDoubleClick += dgvDataMigration_CellDoubleClick;
             dgvDataMigration.RowPostPaint += dgvDataMigration_RowPostPaint;
+            // 
+            // dataMigrationDtoBindingSource
+            // 
+            dataMigrationDtoBindingSource.DataSource = typeof(DataMigrationDto);
+            // 
+            // uiPage
+            // 
+            uiPage.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point);
+            uiPage.Location = new Point(160, 482);
+            uiPage.Margin = new Padding(4, 5, 4, 5);
+            uiPage.MinimumSize = new Size(1, 1);
+            uiPage.Name = "uiPage";
+            uiPage.PagerCount = 5;
+            uiPage.PageSize = 10;
+            uiPage.RectSides = ToolStripStatusLabelBorderSides.None;
+            uiPage.ShowJumpButton = false;
+            uiPage.ShowText = false;
+            uiPage.Size = new Size(388, 35);
+            uiPage.TabIndex = 15;
+            uiPage.Text = "uiPagination1";
+            uiPage.TextAlignment = ContentAlignment.MiddleCenter;
+            uiPage.PageChanged += uiPage_PageChanged;
             // 
             // tableName
             // 
@@ -386,13 +407,6 @@
             errMessage.Name = "errMessage";
             errMessage.ReadOnly = true;
             // 
-            // sql
-            // 
-            sql.DataPropertyName = "Sql";
-            sql.HeaderText = "Sql语句";
-            sql.Name = "sql";
-            sql.ReadOnly = true;
-            // 
             // createTime
             // 
             createTime.DataPropertyName = "CreateTime";
@@ -412,29 +426,7 @@
             btnRetry.ReadOnly = true;
             btnRetry.Text = "重试";
             // 
-            // dataMigrationDtoBindingSource
-            // 
-            dataMigrationDtoBindingSource.DataSource = typeof(DataMigrationDto);
-            // 
-            // uiPage
-            // 
-            uiPage.Font = new Font("宋体", 9F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            uiPage.Location = new Point(160, 482);
-            uiPage.Margin = new Padding(4, 5, 4, 5);
-            uiPage.MinimumSize = new Size(1, 1);
-            uiPage.Name = "uiPage";
-            uiPage.PagerCount = 5;
-            uiPage.PageSize = 10;
-            uiPage.RectSides = ToolStripStatusLabelBorderSides.None;
-            uiPage.ShowJumpButton = false;
-            uiPage.ShowText = false;
-            uiPage.Size = new Size(388, 35);
-            uiPage.TabIndex = 15;
-            uiPage.Text = "uiPagination1";
-            uiPage.TextAlignment = ContentAlignment.MiddleCenter;
-            uiPage.PageChanged += uiPage_PageChanged;
-            // 
-            // DataMigration1
+            // DataMigration
             // 
             AutoScaleDimensions = new SizeF(7F, 17F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -456,7 +448,7 @@
             FormBorderStyle = FormBorderStyle.Fixed3D;
             Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
-            Name = "DataMigration1";
+            Name = "DataMigration";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "DataMigration";
             Load += DataMigration_Load;
@@ -495,7 +487,6 @@
         private DataGridViewTextBoxColumn structureStatus;
         private DataGridViewTextBoxColumn dataStatus;
         private DataGridViewTextBoxColumn errMessage;
-        private DataGridViewTextBoxColumn sql;
         private DataGridViewTextBoxColumn createTime;
         private DataGridViewButtonColumn btnRetry;
     }

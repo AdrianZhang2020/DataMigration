@@ -387,4 +387,15 @@ public static class UtilConvert
         }
         return false;
     }
+
+    public static string IndexNameFormat(this string indexName)
+    {
+        Random random = new Random();
+        int num = random.Next(10000000, 99999999);
+
+        if (indexName.Contains("-") || indexName.Length > 30 || indexName.IsNullOrEmpty())
+            indexName = $"INDEX_{num}";
+
+        return indexName.ToUpper();
+    }
 }
